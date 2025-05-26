@@ -55,7 +55,7 @@ resource "google_cloudbuild_trigger" "github_trigger" {
       args = [
         "build",
         "-t", "${var.region}-docker.pkg.dev/${var.project_id}/learning-platform/${local.effective_service_name}:$${SHORT_SHA}",
-        "-f", "./Dockerfile",
+        "-f", "./app/Dockerfile",
         "."
       ]
     }
