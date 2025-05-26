@@ -18,38 +18,27 @@ resource "google_compute_managed_ssl_certificate" "default" {
   count = var.domain_name != "" ? 1 : 0
 }
 
-# Create a serverless NEG for the frontend service
-resource "google_compute_region_network_endpoint_group" "frontend_neg" {
-  name                  = "frontend-neg"
+# Create a serverless NEG for the API service
+resource "google_compute_region_network_endpoint_group" "api_neg" {
+  name                  = "api-neg"
   network_endpoint_type = "SERVERLESS"
   region                = var.region
   
   cloud_run {
-    service = var.frontend_service_name
+    service = var.service_name
   }
 }
 
-# Create a serverless NEG for the backend service
-resource "google_compute_region_network_endpoint_group" "backend_neg" {
-  name                  = "backend-neg"
-  network_endpoint_type = "SERVERLESS"
-  region                = var.region
-  
-  cloud_run {
-    service = var.backend_service_name
-  }
-}
-
-# Create backend service for frontend
-resource "google_compute_backend_service" "frontend" {
-  name                  = "frontend-backend-service"
+# Create backend service for API
+resource "google_compute_backend_service" "api" {
+  name                  = "api-backend-service"
   protocol              = "HTTP"
   timeout_sec           = 30
   enable_cdn            = var.enable_cdn
   load_balancing_scheme = "EXTERNAL_MANAGED"
   
   backend {
-    group = google_compute_region_network_endpoint_group.frontend_neg.id
+    group = google_compute_region_network_endpoint_group.api_neg.id
   }
   
   # CDN configuration if enabled
@@ -67,23 +56,10 @@ resource "google_compute_backend_service" "frontend" {
   }
 }
 
-# Create backend service for backend API
-resource "google_compute_backend_service" "backend" {
-  name                  = "backend-backend-service"
-  protocol              = "HTTP"
-  timeout_sec           = 30
-  enable_cdn            = false  # No CDN for API calls
-  load_balancing_scheme = "EXTERNAL_MANAGED"
-  
-  backend {
-    group = google_compute_region_network_endpoint_group.backend_neg.id
-  }
-}
-
-# URL map to route requests to the appropriate backend
+# URL map to route requests to the backend
 resource "google_compute_url_map" "url_map" {
   name            = "learning-platform-url-map"
-  default_service = google_compute_backend_service.frontend.id
+  default_service = google_compute_backend_service.api.id
   
   host_rule {
     hosts        = [var.domain_name != "" ? var.domain_name : "*"]
@@ -92,13 +68,7 @@ resource "google_compute_url_map" "url_map" {
   
   path_matcher {
     name            = "paths"
-    default_service = google_compute_backend_service.frontend.id
-    
-    # Route API requests to the backend service
-    path_rule {
-      paths   = ["/api/*"]
-      service = google_compute_backend_service.backend.id
-    }
+    default_service = google_compute_backend_service.api.id
   }
 }
 

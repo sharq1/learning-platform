@@ -45,14 +45,9 @@ output "storage_bucket_url" {
   value       = module.storage.bucket_url
 }
 
-output "cloud_run_frontend_url" {
-  description = "The URL of the frontend Cloud Run service"
-  value       = module.cloud_run.frontend_url
-}
-
-output "cloud_run_backend_url" {
-  description = "The URL of the backend Cloud Run service"
-  value       = module.cloud_run.backend_url
+output "cloud_run_api_url" {
+  description = "The URL of the FastAPI Cloud Run service"
+  value       = module.cloud_run.api_url
 }
 
 output "cloud_run_service_account_email" {

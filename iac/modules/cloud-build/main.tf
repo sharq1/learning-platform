@@ -1,5 +1,29 @@
 # Cloud Build Module - Creates Cloud Build trigger for GitHub repository
 
+# Get project information
+data "google_project" "project" {
+  project_id = var.project_id
+}
+
+locals {
+  # Determine which service name to use, with backward compatibility
+  effective_service_name = coalesce(
+    var.service_name != "" ? var.service_name : null,
+    var.frontend_service_name != "" ? var.frontend_service_name : null,
+    "learning-platform-api"  # Default fallback
+  )
+  
+  # Cloud Build IAM permissions
+  cloudbuild_sa = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
+  cloud_run_admin = "roles/run.admin"
+  iam_sa_user    = "roles/iam.serviceAccountUser"
+  cloudbuild_sa_roles = [
+    "roles/run.admin",
+    "roles/iam.serviceAccountUser",
+    "roles/cloudbuild.builds.builder"
+  ]
+}
+
 # Create Artifact Registry repository for Docker images
 resource "google_artifact_registry_repository" "repo" {
   provider = google-beta
@@ -24,15 +48,15 @@ resource "google_cloudbuild_trigger" "github_trigger" {
     }
   }
   
-  # Build configuration for frontend
+  # Build configuration for the service
   build {
     step {
       name = "gcr.io/cloud-builders/docker"
       args = [
         "build",
-        "-t", "${var.region}-docker.pkg.dev/${var.project_id}/learning-platform/${var.frontend_service_name}:$${SHORT_SHA}",
-        "-f", "./frontend/Dockerfile",
-        "./frontend"
+        "-t", "${var.region}-docker.pkg.dev/${var.project_id}/learning-platform/${local.effective_service_name}:$${SHORT_SHA}",
+        "-f", "./Dockerfile",
+        "."
       ]
     }
     
@@ -40,47 +64,16 @@ resource "google_cloudbuild_trigger" "github_trigger" {
       name = "gcr.io/cloud-builders/docker"
       args = [
         "push",
-        "${var.region}-docker.pkg.dev/${var.project_id}/learning-platform/${var.frontend_service_name}:$${SHORT_SHA}"
+        "${var.region}-docker.pkg.dev/${var.project_id}/learning-platform/${local.effective_service_name}:$${SHORT_SHA}"
       ]
     }
     
-    # Build configuration for backend
-    step {
-      name = "gcr.io/cloud-builders/docker"
-      args = [
-        "build",
-        "-t", "${var.region}-docker.pkg.dev/${var.project_id}/learning-platform/${var.backend_service_name}:$${SHORT_SHA}",
-        "-f", "./backend/Dockerfile",
-        "./backend"
-      ]
-    }
-    
-    step {
-      name = "gcr.io/cloud-builders/docker"
-      args = [
-        "push",
-        "${var.region}-docker.pkg.dev/${var.project_id}/learning-platform/${var.backend_service_name}:$${SHORT_SHA}"
-      ]
-    }
-    
-    # Deploy frontend to Cloud Run
+    # Deploy service to Cloud Run
     step {
       name = "gcr.io/cloud-builders/gcloud"
       args = [
-        "run", "deploy", var.frontend_service_name,
-        "--image", "${var.region}-docker.pkg.dev/${var.project_id}/learning-platform/${var.frontend_service_name}:$${SHORT_SHA}",
-        "--region", var.region,
-        "--service-account", var.service_account_email,
-        "--platform", "managed"
-      ]
-    }
-    
-    # Deploy backend to Cloud Run
-    step {
-      name = "gcr.io/cloud-builders/gcloud"
-      args = [
-        "run", "deploy", var.backend_service_name,
-        "--image", "${var.region}-docker.pkg.dev/${var.project_id}/learning-platform/${var.backend_service_name}:$${SHORT_SHA}",
+        "run", "deploy", local.effective_service_name,
+        "--image", "${var.region}-docker.pkg.dev/${var.project_id}/learning-platform/${local.effective_service_name}:$${SHORT_SHA}",
         "--region", var.region,
         "--service-account", var.service_account_email,
         "--platform", "managed"
@@ -93,8 +86,7 @@ resource "google_cloudbuild_trigger" "github_trigger" {
     
     artifacts {
       images = [
-        "${var.region}-docker.pkg.dev/${var.project_id}/learning-platform/${var.frontend_service_name}:$${SHORT_SHA}",
-        "${var.region}-docker.pkg.dev/${var.project_id}/learning-platform/${var.backend_service_name}:$${SHORT_SHA}"
+        "${var.region}-docker.pkg.dev/${var.project_id}/learning-platform/${local.effective_service_name}:$${SHORT_SHA}"
       ]
     }
   }

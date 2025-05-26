@@ -10,12 +10,18 @@ output "load_balancer_url" {
   value       = var.domain_name != "" ? "https://${var.domain_name}" : "http://${google_compute_global_address.default.address}"
 }
 
+output "api_neg_id" {
+  description = "The ID of the API serverless NEG"
+  value       = google_compute_region_network_endpoint_group.api_neg.id
+}
+
+# Keep these for backward compatibility but mark them as deprecated
 output "frontend_neg_id" {
-  description = "The ID of the frontend serverless NEG"
-  value       = google_compute_region_network_endpoint_group.frontend_neg.id
+  description = "[DEPRECATED] Use api_neg_id instead. The ID of the API serverless NEG"
+  value       = google_compute_region_network_endpoint_group.api_neg.id
 }
 
 output "backend_neg_id" {
-  description = "The ID of the backend serverless NEG"
-  value       = google_compute_region_network_endpoint_group.backend_neg.id
+  description = "[DEPRECATED] Use api_neg_id instead. The ID of the API serverless NEG"
+  value       = google_compute_region_network_endpoint_group.api_neg.id
 }

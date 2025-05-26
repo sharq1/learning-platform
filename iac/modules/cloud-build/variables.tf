@@ -26,14 +26,23 @@ variable "branch_name" {
   default     = "master"
 }
 
-variable "frontend_service_name" {
-  description = "Name of the frontend Cloud Run service"
+variable "service_name" {
+  description = "Name of the FastAPI Cloud Run service"
   type        = string
+  default     = ""  # Default to empty string for backward compatibility
+}
+
+# Backward compatibility variables
+variable "frontend_service_name" {
+  description = "Name of the frontend Cloud Run service (deprecated, use service_name)"
+  type        = string
+  default     = ""
 }
 
 variable "backend_service_name" {
-  description = "Name of the backend Cloud Run service"
+  description = "Name of the backend Cloud Run service (deprecated, use service_name)"
   type        = string
+  default     = ""
 }
 
 variable "service_account_email" {
