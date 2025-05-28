@@ -1,11 +1,16 @@
 import os
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, HTMLResponse
+from pathlib import Path
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .db import get_db, engine
-from .models import Base
-from .routers import auth, materials, users
+from db import get_db, engine
+from models import Base
+from routers.auth import router as auth_router
+from routers.materials import router as materials_router
+from routers.users import router as users_router
 
 # Create FastAPI app
 app = FastAPI(
@@ -13,6 +18,14 @@ app = FastAPI(
     description="API for the Learning Platform application",
     version="1.0.0"
 )
+
+# # Mount static files
+# app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# # Serve index.html for the root path
+# @app.get("/", response_class=HTMLResponse, include_in_schema=False)
+# async def read_root():
+#     return FileResponse('static/index.html')
 
 # Configure CORS
 app.add_middleware(
@@ -24,9 +37,18 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(auth.router)
-app.include_router(materials.router)
-app.include_router(users.router)
+app.include_router(auth_router)
+app.include_router(materials_router)
+app.include_router(users_router)
+
+# Catch-all route for SPA routing
+@app.get("/{full_path:path}", include_in_schema=False)
+async def catch_all(full_path: str):
+    # If the path has an extension, it's probably a static file
+    if Path(full_path).suffix:
+        return FileResponse(f"static/{full_path}")
+    # Otherwise, serve the index.html for SPA routing
+    return FileResponse('static/index.html')
 
 
 # Create database tables on startup

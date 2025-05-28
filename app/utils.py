@@ -7,7 +7,17 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from google.cloud import storage
+# Google Cloud Storage client (optional for local development)
+GCS_ENABLED = os.getenv("GCS_ENABLED", "false").lower() == "true"
+storage_client = None
+
+if GCS_ENABLED:
+    try:
+        from google.cloud import storage
+        storage_client = storage.Client()
+    except Exception as e:
+        print(f"Warning: Failed to initialize Google Cloud Storage client: {e}")
+        storage_client = None
 
 from db import get_db
 from models import User
@@ -22,9 +32,6 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # OAuth2 scheme for token authentication
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
-
-# Google Cloud Storage client
-storage_client = storage.Client()
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -74,13 +81,20 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
 
 def generate_presigned_url(bucket_name: str, blob_name: str, expiration: int = 600) -> str:
     """Generate a presigned URL for a GCS object with 10 minutes expiration."""
-    bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(blob_name)
-    
-    url = blob.generate_signed_url(
-        version="v4",
-        expiration=timedelta(seconds=expiration),
-        method="GET"
-    )
-    
-    return url
+    if not storage_client:
+        # Return a dummy URL in development
+        return f"http://localhost:8080/static/{blob_name}"
+        
+    try:
+        bucket = storage_client.bucket(bucket_name)
+        blob = bucket.blob(blob_name)
+        
+        url = blob.generate_signed_url(
+            version="v4",
+            expiration=timedelta(seconds=expiration),
+            method="GET"
+        )
+        return url
+    except Exception as e:
+        print(f"Error generating signed URL: {e}")
+        return f"http://localhost:8080/static/{blob_name}"
