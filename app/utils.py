@@ -1,7 +1,7 @@
 import os
 import secrets
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any, Union, List
+from typing import Optional, Dict, Any, Union, List, Tuple
 
 from jose import jwt, JWTError
 from passlib.context import CryptContext
@@ -12,6 +12,8 @@ from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from starlette.status import HTTP_403_FORBIDDEN
+
+from db import get_db
 
 # Import models and schemas
 from models import User
@@ -264,3 +266,44 @@ def validate_password_strength(password: str) -> bool:
     if not any(c in "!@#$%^&*()_+{}[]|\:;'<>,.?/\"" for c in password):
         return False
     return True
+
+
+def generate_presigned_url(bucket_name: str, blob_name: str, expiration: int = 3600) -> str:
+    """
+    Generate a presigned URL for accessing a file in GCS.
+    In development mode, returns a mock URL.
+    
+    Args:
+        bucket_name: Name of the GCS bucket
+        blob_name: Name of the blob (file) in the bucket
+        expiration: Expiration time in seconds (default: 1 hour)
+        
+    Returns:
+        str: Presigned URL for accessing the file
+    """
+    # Check if we're using real GCS or mock storage
+    if os.getenv("GCS_ENABLED", "false").lower() == "true":
+        try:
+            from google.cloud import storage
+            from google.cloud.storage import Blob
+            
+            # Initialize the client
+            client = storage.Client()
+            bucket = client.bucket(bucket_name)
+            blob = bucket.blob(blob_name)
+            
+            # Generate the signed URL
+            url = blob.generate_signed_url(
+                version="v4",
+                expiration=timedelta(seconds=expiration),
+                method="GET"
+            )
+            return url
+            
+        except Exception as e:
+            print(f"Error generating presigned URL: {e}")
+            # Fall back to mock URL if there's an error
+            return f"https://storage.googleapis.com/{bucket_name}/{blob_name}?mock=true"
+    else:
+        # In development, return a mock URL
+        return f"http://localhost:8080/static/mock_files/{blob_name}"

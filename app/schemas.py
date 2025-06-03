@@ -88,6 +88,22 @@ class HTTPError(BaseModel):
             "example": {"detail": "Error message"}
         }
 
+class UserProfile(BaseModel):
+    """Schema for user profile information."""
+    id: int
+    email: EmailStr
+    created_at: datetime
+    
+    class Config:
+        orm_mode = True
+        schema_extra = {
+            "example": {
+                "id": 1,
+                "email": "user@example.com",
+                "created_at": "2023-01-01T00:00:00"
+            }
+        }
+
 class StandardResponse(BaseModel):
     success: bool
     message: str
