@@ -285,14 +285,15 @@
                         isLoading.value = true;
                         signupError.value = '';
                         
-                        const response = await fetch(`${API_BASE_URL}/signup`, {
+                        const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
                             },
                             body: JSON.stringify({
                                 email: signupForm.value.email,
-                                password: signupForm.value.password
+                                password: signupForm.value.password,
+                                password_confirm: signupForm.value.confirmPassword
                             })
                         });
 

@@ -1,5 +1,6 @@
 import os
 from fastapi import FastAPI, Depends, HTTPException, Request, status, APIRouter, Security
+from builtins import anext
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, RedirectResponse, JSONResponse
@@ -72,7 +73,9 @@ async def startup():
         await conn.run_sync(Base.metadata.create_all)
     
     # Create a default admin user if no users exist
-    async with get_db() as db:
+    db_gen = get_db()
+    try:
+        db = await anext(db_gen)
         result = await db.execute(select(User))
         if not result.scalars().first():
             hashed_password = get_password_hash("admin123")
@@ -84,6 +87,10 @@ async def startup():
             db.add(admin_user)
             await db.commit()
             print("Created default admin user: admin@example.com / admin123")
+    except StopAsyncIteration:
+        pass
+    finally:
+        await db_gen.aclose()
 
 # Health check endpoint
 @app.get("/health")
