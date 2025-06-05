@@ -91,8 +91,5 @@ resource "google_cloudbuild_trigger" "github_trigger" {
     }
   }
   
-  # Use the service account
-  service_account = var.service_account_email
-  
   depends_on = [google_artifact_registry_repository.repo]
 }

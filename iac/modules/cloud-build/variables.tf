@@ -45,7 +45,7 @@ variable "backend_service_name" {
   default     = ""
 }
 
-variable "service_account_email" {
-  description = "Email of the service account for Cloud Build"
+variable "cloud_run_sa_for_deployment_email" {
+  description = "Email of the service account that the Cloud Run service will use (passed to 'gcloud run deploy --service-account')"
   type        = string
 }

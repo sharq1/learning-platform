@@ -51,15 +51,15 @@ resource "google_service_networking_connection" "private_vpc_connection" {
 
 # Create Serverless VPC Access connector
 resource "google_vpc_access_connector" "connector" {
-  name          = "sl-vpc-conn-v2"
+  name          = "sl-vpc-conn-v3"
   region        = var.region
   network       = google_compute_network.network.name
   ip_cidr_range = var.connector_cidr
   
   # Standard-1 machine type for connector
-  machine_type       = "e2-micro"
+  machine_type       = "f1-micro"
   min_instances = 2
-  max_instances = 10
+  max_instances = 3
   
   depends_on = [
     google_compute_network.network,
