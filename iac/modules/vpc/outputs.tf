@@ -17,7 +17,17 @@ output "subnet_name" {
 
 output "connector_id" {
   description = "The ID of the Serverless VPC Access connector"
-  value       = google_vpc_access_connector.connector.id
+  value       = google_vpc_access_connector.connector.self_link
+}
+
+output "connector_resource" {
+  description = "The Serverless VPC Access connector resource object."
+  value       = google_vpc_access_connector.connector
+}
+
+output "private_service_networking_connection_resource" {
+  description = "The private service networking connection resource object."
+  value       = google_service_networking_connection.private_vpc_connection
 }
 
 output "connector_name" {

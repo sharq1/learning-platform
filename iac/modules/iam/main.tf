@@ -42,6 +42,13 @@ resource "google_project_iam_member" "cloud_run_secretmanager" {
   member  = "serviceAccount:${google_service_account.cloud_run_service_account.email}"
 }
 
+# IAM binding for Cloud Run service account - VPC Access User
+resource "google_project_iam_member" "cloud_run_vpcaccess" {
+  project = var.project_id
+  role    = "roles/vpcaccess.user"
+  member  = "serviceAccount:${google_service_account.cloud_run_service_account.email}"
+}
+
 # IAM binding for Cloud Run service account - Storage Object Viewer
 resource "google_project_iam_member" "cloud_run_storage" {
   project = var.project_id

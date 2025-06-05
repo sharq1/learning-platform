@@ -139,6 +139,8 @@ module "cloud_run" {
   concurrency   = var.concurrency
   
   vpc_connector_id = module.vpc.connector_id
+  vpc_connector_resource_for_dependency = module.vpc.connector_resource
+  private_service_networking_connection_for_dependency = module.vpc.private_service_networking_connection_resource
   
   db_connection_name = module.cloud_sql.connection_name
   db_name            = var.db_name

@@ -63,3 +63,6 @@ The application is deployed to Google Cloud Run using Cloud Build. The deploymen
 - `GET /profile` - Get user profile information
 - `GET /health` - Health check endpoint
 - `GET /` - API information
+
+
+D.duda@3xlabs.pl

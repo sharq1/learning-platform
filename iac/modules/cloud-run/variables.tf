@@ -99,6 +99,18 @@ variable "max_instances" {
   default     = 10
 }
 
+variable "private_service_networking_connection_for_dependency" {
+  description = "The private service networking connection resource, used for explicit dependency."
+  type        = any
+  default     = null
+}
+
+variable "vpc_connector_resource_for_dependency" {
+  description = "The VPC connector resource itself, used for explicit dependency in Cloud Run."
+  type        = any # Can be the resource object or its ID string
+  default     = null
+}
+
 variable "concurrency" {
   description = "Maximum number of concurrent requests per instance"
   type        = number

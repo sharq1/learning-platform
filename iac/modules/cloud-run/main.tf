@@ -92,6 +92,11 @@ resource "google_cloud_run_service" "api" {
   }
   
   autogenerate_revision_name = true
+
+  depends_on = [
+    var.vpc_connector_resource_for_dependency,
+    var.private_service_networking_connection_for_dependency
+  ]
 }
 
 # IAM policy to make the API service public
