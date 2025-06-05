@@ -77,6 +77,13 @@ resource "google_project_iam_member" "cloud_build_storage" {
   member  = "serviceAccount:${google_service_account.cloud_build_service_account.email}"
 }
 
+# IAM binding for Cloud Build service account - Logging Writer
+resource "google_project_iam_member" "cloud_build_logging" {
+  project = var.project_id
+  role    = "roles/logging.logWriter"
+  member  = "serviceAccount:${google_service_account.cloud_build_service_account.email}"
+}
+
 # IAM binding for Cloud Build service account - Artifact Registry Writer
 resource "google_project_iam_member" "cloud_build_artifactregistry" {
   project = var.project_id
