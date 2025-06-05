@@ -177,7 +177,7 @@ module "cloud_build" {
   github_repo      = var.github_repo
   branch_name      = var.branch_name
   
-  service_account_email = module.iam.cloud_build_service_account_email
+  cloud_run_sa_for_deployment_email = module.iam.cloud_run_service_account_email
 
   depends_on = [
     google_project_service.apis,
