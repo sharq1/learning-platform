@@ -15,7 +15,14 @@ REDIS_PORT = os.getenv("REDIS_PORT", "6379")
 REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "")
 
 # Create async database engine
-DATABASE_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
+if DB_HOST and DB_HOST.startswith("/cloudsql/"):
+    # Connecting via Cloud SQL Unix socket
+    DATABASE_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@/{DB_NAME}?host={DB_HOST}"
+else:
+    # Fallback for local development (assuming DB_HOST is a regular hostname/IP then)
+    # Ensure you have DB_PORT environment variable set for local TCP connections
+    DB_PORT = os.getenv("DB_PORT", "5432") 
+    DATABASE_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 engine = create_async_engine(
     DATABASE_URL,
     echo=False,

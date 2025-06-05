@@ -20,7 +20,7 @@ resource "google_cloud_run_service" "api" {
         # Environment variables from secrets
         env {
           name  = "DB_HOST"
-          value = var.db_connection_name
+          value = "/cloudsql/${var.db_connection_name}"
         }
         
         env {
