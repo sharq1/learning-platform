@@ -34,7 +34,7 @@ cloud_build_service_account_id = "cloud-build-sa"
 # Cloud Build settings
 github_owner  = "sharq1"
 github_repo   = "learning-platform"
-branch_name   = "master"
+branch_name   = "main"
 
 # Load Balancer settings
 enable_cdn    = false

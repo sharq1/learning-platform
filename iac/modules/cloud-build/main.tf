@@ -36,13 +36,14 @@ resource "google_artifact_registry_repository" "repo" {
 
 # GitHub connection for Cloud Build
 resource "google_cloudbuild_trigger" "github_trigger" {
-  name        = "github-trigger"
+  location    = var.region
+  name        = "learning-platform-pushed"
   description = "Trigger for GitHub repository"
   
-  github {
-    owner = var.github_owner
-    name  = var.github_repo
-    
+  service_account = "projects/learning-platform-461008/serviceAccounts/cloud-build-sa@learning-platform-461008.iam.gserviceaccount.com"  # Must be full path; short email causes API error 400 with complex builds.
+
+  repository_event_config {
+    repository = "projects/learning-platform-461008/locations/us-central1/connections/github/repositories/learning-platform"
     push {
       branch = "^${var.branch_name}$"
     }
@@ -50,46 +51,55 @@ resource "google_cloudbuild_trigger" "github_trigger" {
   
   # Build configuration for the service
   build {
-    step {
-      name = "gcr.io/cloud-builders/docker"
-      args = [
-        "build",
-        "-t", "${var.region}-docker.pkg.dev/${var.project_id}/learning-platform/${local.effective_service_name}:$${SHORT_SHA}",
-        "-f", "./app/Dockerfile",
-        "."
+    timeout = "600s" # 10 minutes
+    images = [
+      "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.repo.name}/${local.effective_service_name}:$${SHORT_SHA}"
+    ]
+    # Define artifacts (e.g., Docker images to be pushed)
+    artifacts {
+      images = [
+        "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.repo.name}/${local.effective_service_name}:$${SHORT_SHA}"
       ]
     }
-    
+
+    options {
+      logging = "CLOUD_LOGGING_ONLY"
+    }
+
+    # Define build steps
+    # Step 1: Build the Docker image
+    step {
+      name = "gcr.io/cloud-builders/docker"
+      dir  = "app/"
+      args = [
+        "build",
+        "-t",
+        "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.repo.name}/${local.effective_service_name}:$${SHORT_SHA}",
+        "-f",
+        "Dockerfile", # Path to the Dockerfile
+        "."                   # Build context (current directory in the repo)
+      ]
+    }
+
+    # Step 2: Push the Docker image to Artifact Registry
     step {
       name = "gcr.io/cloud-builders/docker"
       args = [
         "push",
-        "${var.region}-docker.pkg.dev/${var.project_id}/learning-platform/${local.effective_service_name}:$${SHORT_SHA}"
+        "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.repo.name}/${local.effective_service_name}:$${SHORT_SHA}"
       ]
     }
-    
-    # Deploy service to Cloud Run
+
+    # Step 3: Deploy the service to Cloud Run
     step {
       name = "gcr.io/cloud-builders/gcloud"
       args = [
         "run", "deploy", local.effective_service_name,
-        "--image", "${var.region}-docker.pkg.dev/${var.project_id}/learning-platform/${local.effective_service_name}:$${SHORT_SHA}",
+        "--image", "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.repo.name}/${local.effective_service_name}:$${SHORT_SHA}",
         "--region", var.region,
         "--service-account", var.cloud_run_sa_for_deployment_email,
         "--platform", "managed"
       ]
     }
-    
-    options {
-      logging = "CLOUD_LOGGING_ONLY"
-    }
-    
-    artifacts {
-      images = [
-        "${var.region}-docker.pkg.dev/${var.project_id}/learning-platform/${local.effective_service_name}:$${SHORT_SHA}"
-      ]
-    }
   }
-  
-  depends_on = [google_artifact_registry_repository.repo]
 }
