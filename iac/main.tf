@@ -11,6 +11,28 @@ provider "google-beta" {
   region  = var.region
 }
 
+# JWT Secret for the application
+resource "google_secret_manager_secret" "jwt_secret" {
+  secret_id = "jwt-secret"
+
+  replication {
+    auto {}
+  }
+}
+
+resource "google_secret_manager_secret_version" "jwt_secret_version" {
+  secret      = "projects/${var.project_id}/secrets/${google_secret_manager_secret.jwt_secret.secret_id}"
+  secret_data = "tDrMHAoK9v-_ZQ2JahpkOy9sjc2VVCFiGg_x69f-aDQ"
+}
+
+resource "google_secret_manager_secret_iam_member" "jwt_secret_accessor" {
+  secret_id = google_secret_manager_secret.jwt_secret.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${module.iam.cloud_run_service_account_email}"
+
+  depends_on = [google_secret_manager_secret.jwt_secret]
+}
+
 # Enable required APIs
 resource "google_project_service" "apis" {
   for_each = toset([
