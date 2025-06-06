@@ -66,3 +66,4 @@ The application is deployed to Google Cloud Run using Cloud Build. The deploymen
 
 
 D.duda@3xlabs.pl
+sAignasd2#@gmail.com

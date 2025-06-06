@@ -191,18 +191,7 @@
                 const loginError = ref('');
                 const signupError = ref('');
                 const userEmail = ref('');
-                const materials = ref([
-                    { 
-                        name: 'Sample PDF 1', 
-                        url: '/static/sample1.pdf', 
-                        uploaded_at: new Date().toISOString() 
-                    },
-                    { 
-                        name: 'Sample PDF 2', 
-                        url: '/static/sample2.pdf', 
-                        uploaded_at: new Date().toISOString() 
-                    }
-                ]);
+                const materials = ref([]); // Initialize as empty array
 
                 const loginForm = ref({
                     email: '',
@@ -214,6 +203,36 @@
                     password: '',
                     confirmPassword: ''
                 });
+
+                const fetchMaterials = async () => {
+                    if (isLoading.value && materials.value.length > 0) return; // Avoid concurrent fetches or if already loading
+                    try {
+                        isLoading.value = true;
+                        const token = localStorage.getItem('access_token');
+                        if (!token) {
+                            return;
+                        }
+
+                        const response = await fetch(`${API_BASE_URL}/api/materials`, {
+                            method: 'GET',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Accept': 'application/json',
+                            },
+                        });
+
+                        const data = await response.json();
+
+                        if (!response.ok) {
+                            throw new Error(data.detail || 'Failed to fetch materials');
+                        }
+                        materials.value = data.materials;
+                    } catch (error) {
+                        console.error('Fetch materials error:', error);
+                    } finally {
+                        isLoading.value = false;
+                    }
+                };
 
                 // Check if user is already authenticated
                 const checkAuth = () => {
@@ -255,6 +274,7 @@
                         
                         isAuthenticated.value = true;
                         userEmail.value = loginForm.value.email;
+                        await fetchMaterials(); // Fetch materials after successful login
                         
                         // Reset form
                         loginForm.value = { email: '', password: '' };
@@ -336,8 +356,11 @@
                 };
 
                 // Check authentication status on component mount
-                onMounted(() => {
+                onMounted(async () => {
                     checkAuth();
+                    if (isAuthenticated.value) {
+                        await fetchMaterials(); // Fetch materials if already authenticated on mount
+                    }
                 });
 
                 return {
@@ -353,7 +376,45 @@
                     login,
                     signup,
                     logout,
-                    formatDate
+                    formatDate,
+                    fetchMaterials
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
+                    if (isLoading.value && materials.value.length > 0) return; // Avoid concurrent fetches or if already loading
+                    try {
+                        isLoading.value = true;
+                        const token = localStorage.getItem('access_token');
+                        if (!token) {
+                            // If no token, user is not authenticated, potentially logout or show login
+                            // isAuthenticated.value = false; // Already handled by checkAuth and logout
+                            return;
+                        }
+
+                        const response = await fetch(`${API_BASE_URL}/api/materials`, {
+                            method: 'GET',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Accept': 'application/json',
+                            },
+                        });
+
+                        const data = await response.json();
+
+                        if (!response.ok) {
+                            throw new Error(data.detail || 'Failed to fetch materials');
+                        }
+                        materials.value = data.materials;
+                    } catch (error) {
+                        console.error('Fetch materials error:', error);
+                        // Optionally, set an error message to display to the user
+                        // materialsError.value = error.message || 'Could not load materials.';
+                    } finally {
+                        isLoading.value = false;
+                    }
                 };
             }
         }).mount('#app');

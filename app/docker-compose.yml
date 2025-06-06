@@ -17,8 +17,8 @@ services:
       - REDIS_PORT=6379
       - REDIS_PASSWORD=
       - JWT_SECRET=dev-secret-key-change-me-in-production
-      - MATERIALS_BUCKET=learning-platform-materials
-      - GCS_ENABLED=false
+      - MATERIALS_BUCKET=learning-platform-461008-learning-platform-materials
+      - GOOGLE_CLOUD_PROJECT=learning-platform-461008
     volumes:
       - .:/app
       - ~/.config/gcloud:/root/.config/gcloud

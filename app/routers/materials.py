@@ -12,52 +12,20 @@ from db import get_db
 from utils import get_current_user, generate_presigned_url
 
 # Get GCS bucket name from env
-MATERIALS_BUCKET = os.getenv("MATERIALS_BUCKET", "learning-platform-materials")
+MATERIALS_BUCKET = os.getenv("MATERIALS_BUCKET")
+if not MATERIALS_BUCKET:
+    raise RuntimeError("MATERIALS_BUCKET environment variable not set.")
 
-# Check if we should use real GCS or mock
-GCS_ENABLED = os.getenv("GCS_ENABLED", "false").lower() == "true"
-
-# Mock storage client for development
+# Attempt to initialize Google Cloud Storage client
 storage_client = None
-
-if GCS_ENABLED:
-    try:
-        from google.cloud import storage
-        storage_client = storage.Client()
-    except Exception as e:
-        print(f"Warning: GCS failed to initialize: {e}")
-        GCS_ENABLED = False
-else:
-    print("Using mock GCS client for development")
-    
-    # Mock classes for GCS
-    @dataclass
-    class MockBlob:
-        name: str
-        size: int
-        updated: datetime
-        
-    class MockBucket:
-        def __init__(self, name):
-            self.name = name
-            
-        def list_blobs(self):
-            # Return some mock PDFs
-            return [
-                MockBlob("sample1.pdf", 1024, datetime.utcnow()), 
-                MockBlob("sample2.pdf", 2048, datetime.utcnow()),
-                MockBlob("course_materials.pdf", 3072, datetime.utcnow()),
-                MockBlob("lecture_notes.pdf", 4096, datetime.utcnow())
-            ]
-            
-        def blob(self, name):
-            return MockBlob(name, 1024, datetime.utcnow())
-    
-    class MockStorage:
-        def bucket(self, name):
-            return MockBucket(name)
-            
-    storage_client = MockStorage()
+try:
+    from google.cloud import storage
+    storage_client = storage.Client()
+    print(f"Successfully initialized GCS client for bucket: {MATERIALS_BUCKET}")
+except Exception as e:
+    print(f"Critical: GCS client failed to initialize: {e}. Material listing will not work.")
+    # Depending on desired behavior, you might raise an error here to prevent app startup
+    # or allow it to run but endpoints will fail.
 
 router = APIRouter(
     prefix="/materials",
@@ -72,8 +40,14 @@ async def list_materials(current_user: User = Depends(get_current_user)):
     List all available PDF materials with presigned URLs.
     Uses mock data in development mode.
     """
+    if not storage_client:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="GCS client is not available. Cannot retrieve materials."
+        )
+
     try:
-        # Get bucket (real or mock)
+        # Get bucket
         bucket = storage_client.bucket(MATERIALS_BUCKET)
         
         # List blobs in the bucket
@@ -84,7 +58,7 @@ async def list_materials(current_user: User = Depends(get_current_user)):
         for blob in blobs:
             # Filter for PDF files
             if blob.name.lower().endswith('.pdf'):
-                # Generate URL (presigned for real GCS, static for mock)
+                # Generate presigned URL
                 url = generate_presigned_url(MATERIALS_BUCKET, blob.name)
                 
                 # Add to materials list
@@ -101,10 +75,6 @@ async def list_materials(current_user: User = Depends(get_current_user)):
     
     except Exception as e:
         print(f"Error retrieving materials: {str(e)}")
-        # Return empty list in development to allow testing
-        if not GCS_ENABLED:
-            return MaterialList(materials=[])
-            
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error retrieving materials: {str(e)}"
