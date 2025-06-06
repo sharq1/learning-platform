@@ -150,6 +150,7 @@ module "cloud_run" {
   redis_port         = module.redis.redis_port
   
   service_account_email = module.iam.cloud_run_service_account_email
+  materials_bucket_name = module.storage.bucket_name
   
   depends_on = [
     google_project_service.apis,

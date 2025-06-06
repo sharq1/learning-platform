@@ -28,6 +28,11 @@ variable "backend_service_name" {
   default     = ""
 }
 
+variable "materials_bucket_name" {
+  description = "Name of the Cloud Storage bucket for learning materials"
+  type        = string
+}
+
 variable "service_image" {
   description = "Docker image for the FastAPI service"
   type        = string

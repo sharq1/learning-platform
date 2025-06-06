@@ -65,12 +65,22 @@ resource "google_cloud_run_service" "api" {
 
         env {
           name  = "MATERIALS_BUCKET"
-          value = "learning-platform-461008-learning-platform-materials"
+          value = var.materials_bucket_name
         }
 
         env {
           name  = "GOOGLE_CLOUD_PROJECT"
-          value = "learning-platform-461008"
+          value = var.project_id
+        }
+
+        env {
+          name = "JWT_SECRET"
+          value_from {
+            secret_key_ref {
+              name = "projects/${var.project_id}/secrets/jwt-secret"
+              key  = "latest"
+            }
+          }
         }
       }
       
