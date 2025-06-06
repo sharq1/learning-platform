@@ -77,7 +77,7 @@ resource "google_cloud_run_service" "api" {
           name = "JWT_SECRET"
           value_from {
             secret_key_ref {
-              name = "projects/${var.project_id}/secrets/jwt-secret"
+              name = "jwt-secret"
               key  = "latest"
             }
           }
