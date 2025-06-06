@@ -97,6 +97,7 @@ resource "google_cloudbuild_trigger" "github_trigger" {
         "run", "deploy", local.effective_service_name,
         "--image", "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.repo.name}/${local.effective_service_name}:$${SHORT_SHA}",
         "--region", var.region,
+        "--project", var.project_id,
         "--service-account", var.cloud_run_sa_for_deployment_email,
         "--platform", "managed"
       ]
