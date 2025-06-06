@@ -62,14 +62,14 @@ class MaterialBase(BaseModel):
     url: str
     size: Optional[int] = None
     content_type: Optional[str] = None
+    uploaded_at: Optional[datetime] = None
+    uploaded_by: Optional[int] = None
 
 class MaterialCreate(MaterialBase):
     pass
 
 class Material(MaterialBase):
-    id: int
-    uploaded_at: datetime
-    uploaded_by: int
+    id: Optional[int] = None
     
     class Config:
         orm_mode = True

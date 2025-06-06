@@ -75,3 +75,5 @@ terraform.rc
 !*.md
 !*.sh
 !.gitignore
+
+gcp-sa-key.json

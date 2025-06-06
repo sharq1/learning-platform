@@ -55,23 +55,30 @@ async def list_materials(current_user: User = Depends(get_current_user)):
         
         # Create list of materials with URLs
         materials = []
-        for blob in blobs:
-            # Filter for PDF files
-            if blob.name.lower().endswith('.pdf'):
-                # Generate presigned URL
-                url = generate_presigned_url(MATERIALS_BUCKET, blob.name)
-                
-                # Add to materials list
-                materials.append(
-                    Material(
-                        name=blob.name,
-                        url=url,
-                        size=blob.size,
-                        uploaded_at=blob.updated
-                    )
-                )
+        pdf_blobs = [blob for blob in blobs if blob.name.lower().endswith('.pdf')]
         
-        return MaterialList(materials=materials)
+        for blob in pdf_blobs:
+            # Generate presigned URL
+            url = generate_presigned_url(storage_client, MATERIALS_BUCKET, blob.name)
+            
+            # Add to materials list
+            materials.append(
+                Material(
+                    name=blob.name,
+                    url=url,
+                    size=blob.size,
+                    uploaded_at=blob.updated,
+                    uploaded_by=current_user.id
+                )
+            )
+        
+        # Return MaterialList with required pagination fields
+        return MaterialList(
+            materials=materials,
+            total=len(materials),
+            page=1,  # Default to page 1 since we're not implementing pagination yet
+            pages=1   # Only 1 page since we're not implementing pagination yet
+        )
     
     except Exception as e:
         print(f"Error retrieving materials: {str(e)}")
