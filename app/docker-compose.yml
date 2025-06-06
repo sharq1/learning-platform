@@ -16,7 +16,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=
-      - JWT_SECRET=dev-secret-key-change-me-in-production
+      - JWT_SECRET=tDrMHAoK9v-_ZQ2JahpkOy9sjc2VVCFiGg_x69f-aDQ
       - MATERIALS_BUCKET=learning-platform-461008-learning-platform-materials
       - GOOGLE_CLOUD_PROJECT=learning-platform-461008
       - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp-sa-key.json

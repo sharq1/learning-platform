@@ -21,6 +21,7 @@ from schemas import TokenData, UserRole
 
 # Security configuration
 SECRET_KEY = os.getenv("JWT_SECRET", secrets.token_urlsafe(32))
+print(f"UTILS.PY: JWT_SECRET from env: '{SECRET_KEY}'")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30  # 30 minutes
 REFRESH_TOKEN_EXPIRE_DAYS = 7  # 7 days
@@ -266,7 +267,6 @@ def validate_password_strength(password: str) -> bool:
     if not any(c in "!@#$%^&*()_+{}[]|\:;'<>,.?/\"" for c in password):
         return False
     return True
-
 
 def generate_presigned_url(gcs_client, bucket_name: str, blob_name: str, expiration: int = 3600) -> str:
     """
