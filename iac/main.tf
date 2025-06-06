@@ -33,6 +33,13 @@ resource "google_secret_manager_secret_iam_member" "jwt_secret_accessor" {
   depends_on = [google_secret_manager_secret.jwt_secret]
 }
 
+# Grant Cloud Run SA the ability to create signed URLs/tokens
+resource "google_service_account_iam_member" "cloud_run_sa_token_creator" {
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${module.iam.cloud_run_service_account_email}"
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "serviceAccount:${module.iam.cloud_run_service_account_email}" # SA granting permission to itself
+}
+
 # Enable required APIs
 resource "google_project_service" "apis" {
   for_each = toset([
