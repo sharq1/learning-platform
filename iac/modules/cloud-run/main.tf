@@ -62,6 +62,16 @@ resource "google_cloud_run_service" "api" {
             }
           }
         }
+
+        env {
+          name  = "MATERIALS_BUCKET"
+          value = "learning-platform-461008-learning-platform-materials"
+        }
+
+        env {
+          name  = "GOOGLE_CLOUD_PROJECT"
+          value = "learning-platform-461008"
+        }
       }
       
       # Set the service account

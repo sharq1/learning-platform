@@ -158,20 +158,56 @@
                     Sign Out
                 </button>
             </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div v-for="material in materials" :key="material.name" class="border rounded-lg overflow-hidden hover:shadow-md transition-shadow">
-                    <div class="p-4">
-                        <h3 class="text-lg font-medium text-gray-900 mb-2">{{ material.name }}</h3>
-                        <p class="text-gray-600 text-sm mb-4">Uploaded on {{ formatDate(material.uploaded_at) }}</p>
-                        <a 
-                            :href="material.url" 
-                            target="_blank" 
-                            class="inline-block px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                        >
-                            View Material
-                        </a>
-                    </div>
+
+            <!-- Tabs for Materials and Profile -->
+            <div class="mb-4 border-b border-gray-200">
+                <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                    <button 
+                        @click="activeMainTab = 'materials'"
+                        :class="['whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm',
+                                 activeMainTab === 'materials' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300']"
+                    >
+                        Materials
+                    </button>
+                    <button 
+                        @click="activeMainTab = 'profile'; fetchProfile();"
+                        :class="['whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm',
+                                 activeMainTab === 'profile' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300']"
+                    >
+                        Profile
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Materials View -->
+            <div v-if="activeMainTab === 'materials'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div 
+                    v-for="material in materials" 
+                    :key="material.id || material.name" 
+                    class="bg-white rounded-lg shadow-md p-6"
+                >
+                    <h2 class="text-xl font-semibold text-gray-800 mb-2">{{ material.name }}</h2>
+                    <p class="text-gray-600 text-sm mb-1">Size: {{ (material.size / 1024).toFixed(2) }} KB</p>
+                    <p class="text-gray-600 text-sm mb-4">Uploaded on {{ formatDate(material.uploaded_at) }}</p>
+                    <a 
+                        :href="material.url" 
+                        target="_blank" 
+                        class="inline-block px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                        View Material
+                    </a>
+                </div>
+            </div>
+
+            <!-- Profile View -->
+            <div v-if="activeMainTab === 'profile'" class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">User Profile</h2>
+                <div v-if="isLoadingProfile" class="text-gray-500">Loading profile...</div>
+                <div v-if="profileError" class="text-red-500">{{ profileError }}</div>
+                <div v-if="userProfile && !isLoadingProfile">
+                    <p class="mb-2"><strong class="font-medium text-gray-700">User ID:</strong> {{ userProfile.id }}</p>
+                    <p class="mb-2"><strong class="font-medium text-gray-700">Email:</strong> {{ userProfile.email }}</p>
+                    <p><strong class="font-medium text-gray-700">Account Created:</strong> {{ formatDate(userProfile.created_at) }}</p>
                 </div>
             </div>
         </div>
@@ -186,12 +222,16 @@
         createApp({
             setup() {
                 const activeTab = ref('login');
+                const activeMainTab = ref('materials'); // 'materials' or 'profile'
                 const isAuthenticated = ref(false);
                 const isLoading = ref(false);
+                const isLoadingProfile = ref(false);
                 const loginError = ref('');
                 const signupError = ref('');
+                const profileError = ref('');
                 const userEmail = ref('');
                 const materials = ref([]); // Initialize as empty array
+                const userProfile = ref(null);
 
                 const loginForm = ref({
                     email: '',
@@ -231,6 +271,31 @@
                         console.error('Fetch materials error:', error);
                     } finally {
                         isLoading.value = false;
+                    }
+                };
+
+                const fetchProfile = async () => {
+                    if (!isAuthenticated.value) return;
+                    isLoadingProfile.value = true;
+                    profileError.value = '';
+                    try {
+                        const token = localStorage.getItem('access_token');
+                        const response = await fetch(`${API_BASE_URL}/api/profile`, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Accept': 'application/json',
+                            }
+                        });
+                        const data = await response.json();
+                        if (!response.ok) {
+                            throw new Error(data.detail || 'Failed to fetch profile');
+                        }
+                        userProfile.value = data;
+                    } catch (error) {
+                        console.error('Fetch profile error:', error);
+                        profileError.value = error.message || 'Could not load profile.';
+                    } finally {
+                        isLoadingProfile.value = false;
                     }
                 };
 
@@ -275,6 +340,8 @@
                         isAuthenticated.value = true;
                         userEmail.value = loginForm.value.email;
                         await fetchMaterials(); // Fetch materials after successful login
+                        await fetchProfile(); // Fetch profile after successful login
+                        activeMainTab.value = 'materials'; // Default to materials tab
                         
                         // Reset form
                         loginForm.value = { email: '', password: '' };
@@ -344,7 +411,7 @@
                     localStorage.removeItem('user_email');
                     isAuthenticated.value = false;
                     userEmail.value = '';
-                    activeTab.value = 'login';
+                    activeMainTab.value = 'materials'; // Default to materials tab
                     // Redirect to home or login page
                     window.location.href = '/';
                 };
@@ -360,24 +427,31 @@
                     checkAuth();
                     if (isAuthenticated.value) {
                         await fetchMaterials(); // Fetch materials if already authenticated on mount
+                        await fetchProfile(); // Fetch profile if already authenticated on mount
                     }
                 });
 
                 return {
                     activeTab,
+                    activeMainTab,
                     isAuthenticated,
                     isLoading,
+                    isLoadingProfile,
                     loginError,
                     signupError,
+                    profileError,
                     userEmail,
                     materials,
+                    userProfile,
                     loginForm,
                     signupForm,
                     login,
                     signup,
                     logout,
                     formatDate,
-                    fetchMaterials
+                    fetchMaterials,
+                    fetchProfile,
+                    checkAuth
                 };
             }
         }).mount('#app');
